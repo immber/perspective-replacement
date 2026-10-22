@@ -10,3 +10,8 @@ export const ATTRIBUTE_TO_LABEL = {
 } as const;
 
 export type Attribute = keyof typeof ATTRIBUTE_TO_LABEL;
+export type Label = (typeof ATTRIBUTE_TO_LABEL)[Attribute];
+
+export function isSupportedAttribute(name: string): name is Attribute {
+  return Object.hasOwn(ATTRIBUTE_TO_LABEL, name);
+}
