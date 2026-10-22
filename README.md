@@ -80,7 +80,7 @@ Accepts moderator feedback, which Coral sends when a comment is approved or reje
 
 ### `GET /healthz`
 
-No key required. Returns `200 {"status":"ok"}` once the model has loaded, and `503` until then. Use it as the readiness check.
+No key required. Returns `200 {"status":"ok"}` when the model is loaded, and `503` otherwise. The server loads the model before it opens its port, so in practice a running server always answers 200.
 
 ### Supported attributes
 
@@ -127,6 +127,39 @@ npm run build && npm start
 
 `npm run fetch-model` checks every downloaded file against [scripts/model.sha256](scripts/model.sha256) and fails if any file has changed.
 
+## Deploy to Cloud Run
+
+The [Dockerfile](Dockerfile) builds a linux/amd64 image with the model weights baked in, verified against `scripts/model.sha256`. It runs as a non-root user and leaves out packages that tfjs-node only needs at install time. [cloudbuild.yaml](cloudbuild.yaml) builds the image and pushes it to Artifact Registry.
+
+One-time setup (replace `REGION` with the region you choose, close to your Coral hosts):
+
+```sh
+gcloud artifacts repositories create perspective-replacement \
+  --repository-format=docker --location=REGION
+printf '%s' "$(openssl rand -hex 32)" | \
+  gcloud secrets create perspective-api-key --data-file=-
+```
+
+Then grant the Cloud Run service account `roles/secretmanager.secretAccessor` on that secret.
+
+Build, then deploy:
+
+```sh
+gcloud builds submit --config cloudbuild.yaml --substitutions=_REGION=REGION
+
+gcloud run deploy perspective-replacement \
+  --image=REGION-docker.pkg.dev/PROJECT_ID/perspective-replacement/perspective-replacement:latest \
+  --region=REGION \
+  --min-instances=1 --no-cpu-throttling \
+  --memory=1Gi --cpu=1 \
+  --set-secrets=PERSPECTIVE_API_KEY=perspective-api-key:latest \
+  --allow-unauthenticated
+```
+
+- `--min-instances=1` and `--no-cpu-throttling` keep one instance warm, so requests never wait for a cold start.
+- `--allow-unauthenticated` is needed because Coral sends our API key, not a Google identity token. The app checks the key itself.
+- Memory is a first guess: the process uses about 500 MB locally. Concurrency and max instances should be set after load testing.
+
 ## Privacy and logging
 
 - The service writes its own JSON log events only, never the query string (which holds the key) or comment text.
@@ -139,4 +172,4 @@ The tokenizer and inference code is ported from Google's `@tensorflow-models/tox
 
 ## Status
 
-Scoring works with the real model. Still to come: the Dockerfile and `cloudbuild.yaml`, golden and latency tests, and deployment details.
+Scoring works with the real model, and the image builds for Cloud Run. Still to come: golden and latency tests, the first deploy (service URL and region), and the Cloud Logging exclusion.

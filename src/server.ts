@@ -107,11 +107,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   }
   const scorer = new TfScorer();
   const port = Number(process.env.PORT ?? 8080);
-  // Listen first so /healthz answers 503 while the model loads.
-  await buildApp({ apiKey, scorer }).listen({ port, host: "0.0.0.0" });
-  // Never log the query string or comment text.
-  console.log(JSON.stringify({ event: "listening", port }));
 
+  // Load before listening: Cloud Run's default startup probe only waits for the
+  // port to open, so no traffic arrives until the model is ready.
   const started = performance.now();
   try {
     await scorer.load(process.env.MODEL_DIR ?? "model");
@@ -122,4 +120,18 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   console.log(
     JSON.stringify({ event: "model_loaded", ms: Math.round(performance.now() - started) }),
   );
+
+  const app = buildApp({ apiKey, scorer });
+  await app.listen({ port, host: "0.0.0.0" });
+  // Never log the query string or comment text.
+  console.log(JSON.stringify({ event: "listening", port }));
+
+  // Cloud Run sends SIGTERM before stopping an instance; finish in-flight requests.
+  for (const signal of ["SIGTERM", "SIGINT"] as const) {
+    process.once(signal, async () => {
+      console.log(JSON.stringify({ event: "shutdown", signal }));
+      await app.close();
+      process.exit(0);
+    });
+  }
 }

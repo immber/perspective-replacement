@@ -1,0 +1,26 @@
+# Builds the image and pushes it to Artifact Registry.
+#   gcloud builds submit --config cloudbuild.yaml --substitutions=_REGION=us-central1
+# Deploying is a separate step; see README "Deploy to Cloud Run".
+substitutions:
+  _REGION: us-central1
+  _REPO: perspective-replacement
+  _IMAGE: perspective-replacement
+
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --platform=linux/amd64
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$BUILD_ID
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:latest
+      - .
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:$BUILD_ID
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE}:latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY

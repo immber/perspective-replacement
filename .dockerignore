@@ -1,0 +1,8 @@
+node_modules
+dist
+model
+test
+fixtures
+.git
+*.log
+.env
