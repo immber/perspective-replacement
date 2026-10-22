@@ -98,10 +98,10 @@ test("400 when requestedAttributes is empty", async () => {
 test("400 for an unsupported attribute, naming it", async () => {
   const res = await analyze({
     ...goodBody,
-    requestedAttributes: { TOXICITY: {}, SEXUALLY_EXPLICIT: {} },
+    requestedAttributes: { TOXICITY: {}, FLIRTATION: {} },
   });
   assertError(res, 400);
-  assert.match(res.json().error.message, /SEXUALLY_EXPLICIT/);
+  assert.match(res.json().error.message, /FLIRTATION/);
 });
 
 test("400 for non-English languages", async () => {

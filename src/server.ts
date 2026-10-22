@@ -11,7 +11,7 @@ import {
 } from "./contract.js";
 import { isEnglish } from "./language.js";
 import { ATTRIBUTE_TO_LABEL, isSupportedAttribute, type Attribute } from "./mapping.js";
-import type { Scorer } from "./scorer.js";
+import { TfScorer, type Scorer } from "./scorer.js";
 
 export interface AppOptions {
   apiKey: string;
@@ -105,15 +105,21 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     console.error(JSON.stringify({ event: "startup_error", message: "PERSPECTIVE_API_KEY not set" }));
     process.exit(1);
   }
-  // TODO: replace with the real TF.js scorer once it is implemented.
-  const scorer: Scorer = {
-    isReady: () => false,
-    score: async () => {
-      throw new Error("Scorer not implemented");
-    },
-  };
+  const scorer = new TfScorer();
   const port = Number(process.env.PORT ?? 8080);
+  // Listen first so /healthz answers 503 while the model loads.
   await buildApp({ apiKey, scorer }).listen({ port, host: "0.0.0.0" });
   // Never log the query string or comment text.
   console.log(JSON.stringify({ event: "listening", port }));
+
+  const started = performance.now();
+  try {
+    await scorer.load(process.env.MODEL_DIR ?? "model");
+  } catch (err) {
+    console.error(JSON.stringify({ event: "model_load_failed", message: String(err) }));
+    process.exit(1);
+  }
+  console.log(
+    JSON.stringify({ event: "model_loaded", ms: Math.round(performance.now() - started) }),
+  );
 }

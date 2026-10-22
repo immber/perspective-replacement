@@ -1,0 +1,9 @@
+perspective-replacement
+
+This product includes code ported from:
+
+- @tensorflow-models/toxicity 1.2.2
+- @tensorflow-models/universal-sentence-encoder 1.2.2
+
+Copyright 2019 Google LLC. Licensed under the Apache License, Version 2.0.
+https://github.com/tensorflow/tfjs-models

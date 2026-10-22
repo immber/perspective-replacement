@@ -10,7 +10,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "fetch-model": "tsx scripts/fetch-model.ts"
   },
   "private": "true",
   "type": "module",

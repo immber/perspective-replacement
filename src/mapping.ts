@@ -1,5 +1,5 @@
 // Model labels to Perspective attribute names.
-// Unverified: label names come from the model weights; confirm once they are downloaded.
+// Label names confirmed against the downloaded model weights (2026-10-22).
 export const ATTRIBUTE_TO_LABEL = {
   TOXICITY: "toxicity",
   SEVERE_TOXICITY: "severe_toxicity",
@@ -7,6 +7,7 @@ export const ATTRIBUTE_TO_LABEL = {
   PROFANITY: "obscene",
   THREAT: "threat",
   IDENTITY_ATTACK: "identity_attack",
+  SEXUALLY_EXPLICIT: "sexual_explicit",
 } as const;
 
 export type Attribute = keyof typeof ATTRIBUTE_TO_LABEL;
