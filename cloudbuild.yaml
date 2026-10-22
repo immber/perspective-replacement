@@ -3,7 +3,7 @@
 # Deploying is a separate step; see README "Deploy to Cloud Run".
 substitutions:
   _REGION: us-central1
-  _REPO: perspective-replacement
+  _REPO: cloud-run-source-deploy
   _IMAGE: perspective-replacement
 
 steps:
