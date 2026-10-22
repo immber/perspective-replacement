@@ -62,17 +62,18 @@ Scores a comment for the requested attributes.
 {
   "attributeScores": {
     "TOXICITY": {
-      "summaryScore": { "value": 0.994, "type": "PROBABILITY" },
       "spanScores": [
         { "begin": 0, "end": 23, "score": { "value": 0.994, "type": "PROBABILITY" } }
-      ]
+      ],
+      "summaryScore": { "value": 0.994, "type": "PROBABILITY" }
     }
   },
-  "languages": ["en"]
+  "languages": ["en"],
+  "detectedLanguages": ["en"]
 }
 ```
 
-Scores are probabilities from 0 to 1. The model scores the whole comment, so there is always one span covering all of the text.
+Responses are pretty-printed with a trailing newline, as Perspective's are. Both language fields are always `["en"]` in v0. Scores are probabilities from 0 to 1. The model scores the whole comment, so there is always one span covering all of the text.
 
 ### `POST /v1alpha1/comments:suggestscore`
 

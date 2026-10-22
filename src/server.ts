@@ -28,6 +28,9 @@ export function buildApp({ apiKey, scorer }: AppOptions) {
   // Fastify's logger is off: its request logs include the URL, which carries ?key=.
   const app = Fastify({ logger: false });
 
+  // Pretty-print with a trailing newline, as Perspective does.
+  app.setReplySerializer((payload) => JSON.stringify(payload, null, 2) + "\n");
+
   app.setErrorHandler((err: { statusCode?: number; message: string }, _req, reply) => {
     const code = err.statusCode && err.statusCode < 500 ? err.statusCode : 500;
     const message = code === 500 ? "Internal error" : err.message;

@@ -118,6 +118,7 @@ test("200 with Perspective response shape", async () => {
   assert.equal(res.statusCode, 200);
   const body = res.json();
   assert.deepEqual(body.languages, ["en"]);
+  assert.deepEqual(body.detectedLanguages, ["en"]);
   assert.deepEqual(Object.keys(body.attributeScores).sort(), ["INSULT", "TOXICITY"]);
   for (const attr of ["TOXICITY", "INSULT"]) {
     const s = body.attributeScores[attr];
@@ -127,6 +128,15 @@ test("200 with Perspective response shape", async () => {
       { begin: 0, end: goodBody.comment.text.length, score: s.summaryScore },
     ]);
   }
+});
+
+test("responses are pretty-printed with a trailing newline", async () => {
+  const ok = await analyze(goodBody);
+  assert.match(ok.body, /^\{\n  "attributeScores"/);
+  assert.ok(ok.body.endsWith("}\n"));
+  const err = await analyze(goodBody, null);
+  assert.match(err.body, /^\{\n  "error"/);
+  assert.ok(err.body.endsWith("}\n"));
 });
 
 test("missing languages is treated as English", async () => {

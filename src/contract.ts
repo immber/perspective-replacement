@@ -49,10 +49,12 @@ export function analyzeResponse(text: string, scores: Partial<Record<Attribute, 
   const attributeScores: Record<string, unknown> = {};
   for (const [attr, value] of Object.entries(scores)) {
     const score = { value, type: "PROBABILITY" };
+    // Field order matches Perspective's responses.
     attributeScores[attr] = {
-      summaryScore: score,
       spanScores: [{ begin: 0, end, score }],
+      summaryScore: score,
     };
   }
-  return { attributeScores, languages: ["en"] };
+  // v0 only accepts English, so both language fields are always ["en"].
+  return { attributeScores, languages: ["en"], detectedLanguages: ["en"] };
 }
