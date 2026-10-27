@@ -16,8 +16,8 @@ export interface Scorer {
 export class TfScorer implements Scorer {
   private model?: tf.GraphModel;
   private tokenizer?: Tokenizer;
-  /** Output node name for each label, read from the model itself. */
-  private heads = new Map<string, string>();
+  /** Output head index for each label, read from the model itself. */
+  private heads = new Map<string, number>();
 
   /** Labels the loaded model actually exposes. */
   get modelLabels(): string[] {
@@ -31,7 +31,7 @@ export class TfScorer implements Scorer {
       tf.loadGraphModel(`file://${path.join(dir, "toxicity", "model.json")}`),
       readFile(path.join(dir, "vocab.json"), "utf8"),
     ]);
-    for (const o of model.outputs) this.heads.set(o.name.split("/")[0], o.name);
+    model.outputs.forEach((o, i) => this.heads.set(o.name.split("/")[0], i));
 
     const missing = Object.values(ATTRIBUTE_TO_LABEL).filter((l) => !this.heads.has(l));
     if (missing.length > 0) {
@@ -59,27 +59,22 @@ export class TfScorer implements Scorer {
     );
     const values = tf.tensor1d(ids, "int32");
     let outputs: tf.Tensor[] = [];
-    let combined: tf.Tensor | undefined;
     try {
-      // Asking only for the requested heads lets tfjs skip the others.
-      const result = await this.model.executeAsync(
-        { Placeholder_1: indices, Placeholder: values },
-        labels.map((l) => this.heads.get(l)!),
-      );
-      outputs = Array.isArray(result) ? result : [result];
-      // Each head returns [p(not label), p(label)]; read them all in one transfer.
-      combined = tf.tidy(() => tf.concat(outputs.map((t) => t.reshape([-1]))));
-      const probs = await combined.data();
-      const scores = {} as Record<Label, number>;
-      labels.forEach((label, i) => {
-        scores[label] = probs[i * 2 + 1];
-      });
-      return scores;
+      outputs = (await this.model.executeAsync({
+        Placeholder_1: indices,
+        Placeholder: values,
+      })) as tf.Tensor[];
+      const result = {} as Record<Label, number>;
+      for (const label of labels) {
+        // Each head returns [p(not label), p(label)] per input.
+        const probs = await outputs[this.heads.get(label)!].data();
+        result[label] = probs[1];
+      }
+      return result;
     } finally {
       indices.dispose();
       values.dispose();
       tf.dispose(outputs);
-      combined?.dispose();
     }
   }
 }

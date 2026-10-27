@@ -22,9 +22,15 @@ RUN npm prune --omit=dev \
 
 # --- Runtime ---
 FROM node:22-bookworm-slim
+# TensorFlow sizes its thread pools from the host's cores, not the container's
+# CPU limit. Match them to the vCPU count (1) so they don't compete with Node.
+# These can be overridden per deploy with --set-env-vars.
 ENV NODE_ENV=production \
     PORT=8080 \
-    MODEL_DIR=/app/model
+    MODEL_DIR=/app/model \
+    TF_NUM_INTRAOP_THREADS=1 \
+    TF_NUM_INTEROP_THREADS=1 \
+    OMP_NUM_THREADS=1
 WORKDIR /app
 
 COPY --from=build /app/node_modules ./node_modules
