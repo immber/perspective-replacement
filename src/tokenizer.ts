@@ -50,14 +50,15 @@ class Trie {
     }
   }
 
-  commonPrefixSearch(ss: string[]): TrieWord[] {
+  /** Vocabulary words that are prefixes of `ss` starting at `start`. */
+  commonPrefixSearch(ss: string[], start: number): TrieWord[] {
     const output: TrieWord[] = [];
-    let node: TrieNode | undefined = this.root.children[ss[0]];
-    for (let i = 0; i < ss.length && node; i++) {
+    let node: TrieNode | undefined = this.root.children[ss[start]];
+    for (let i = start; i < ss.length && node; i++) {
       if (node.end) output.push(node.word);
       node = node.children[ss[i + 1]];
     }
-    if (!output.length) output.push([[ss[0]], 0, 0]);
+    if (!output.length) output.push([[ss[start]], 0, 0]);
     return output;
   }
 }
@@ -83,7 +84,7 @@ export class Tokenizer {
     }
 
     for (let i = 0; i < symbols.length; i++) {
-      for (const [key, score, index] of this.trie.commonPrefixSearch(symbols.slice(i))) {
+      for (const [key, score, index] of this.trie.commonPrefixSearch(symbols, i)) {
         const endPos = i + key.length;
         (nodes[endPos][i] ??= []).push({ key, score, index });
       }
