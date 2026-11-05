@@ -36,7 +36,7 @@ WORKDIR /app
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/model ./model
-COPY package.json NOTICE ./
+COPY package.json NOTICE LICENSE LICENSE-APACHE ./
 
 USER node
 EXPOSE 8080

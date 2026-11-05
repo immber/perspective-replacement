@@ -6,7 +6,9 @@
  * Copyright 2019 Google LLC. Licensed under the Apache License, Version 2.0.
  * https://www.apache.org/licenses/LICENSE-2.0
  *
- * Changes: converted to a single TypeScript module. Behaviour is unchanged.
+ * Changes: converted to a single TypeScript module. commonPrefixSearch takes a
+ * start index instead of a sliced copy of the input, which makes long texts
+ * faster to encode. Output is unchanged.
  */
 
 /** [piece, score] pairs. The first 6 entries are reserved symbols. */

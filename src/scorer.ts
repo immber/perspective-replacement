@@ -1,5 +1,12 @@
 // TF.js toxicity model loading and scoring.
-// Inference logic ported from @tensorflow-models/toxicity 1.2.2 (Apache-2.0, Google LLC).
+// Inference logic ported from @tensorflow-models/toxicity 1.2.2
+// (src/index.ts). Copyright 2019 Google LLC. Licensed under the Apache
+// License, Version 2.0. See LICENSE-APACHE and NOTICE.
+//
+// Changes: rewritten as a TypeScript class for @tensorflow/tfjs-node 4.x.
+// Loads weights and vocabulary from a local folder instead of TF Hub, scores
+// one text per call for the requested labels, and checks at load time that
+// the model has every label this service maps to.
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import * as tf from "@tensorflow/tfjs-node";

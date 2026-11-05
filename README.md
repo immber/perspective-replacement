@@ -6,6 +6,10 @@ A drop-in replacement for the [Perspective API](https://www.perspectiveapi.com/)
 - **Nothing is stored.** Comment text is never written to disk, a database, or logs.
 - **Same request and response shape as Perspective**. Same label values returned.
 
+### Open Source Model
+Uses the @tensorflow-models/toxicity 1.2.2 (Apache-2.0), with weights baked into the container image
+
+
 ## Quick start
 
 Requires Node 22 or later.
@@ -185,12 +189,21 @@ See [LOAD_TEST_RESULTS.md](LOAD_TEST_RESULTS.md) for information about scaling.
 
 ## Licence and attribution
 
-The tokenizer and inference code is ported from Google's `@tensorflow-models/toxicity` and `@tensorflow-models/universal-sentence-encoder` (Apache-2.0). See [NOTICE](NOTICE).
+This project is released under the [MIT License](LICENSE), copyright CoastWeb, LLC.
+
+The tokenizer and inference code ([src/tokenizer.ts](src/tokenizer.ts) and [src/scorer.ts](src/scorer.ts)) is ported from Google's `@tensorflow-models/toxicity` and `@tensorflow-models/universal-sentence-encoder` and remains under the Apache License 2.0 ([LICENSE-APACHE](LICENSE-APACHE)). See [NOTICE](NOTICE).
 
 ## Status
 
-Scoring works with the real model, the image builds for Cloud Run, and a single container deployment has been load tested. 
+✅ v0: English only. Non-English text returns an error. 
+Scoring works with the replacement model, the docker image builds and runs on Cloud Run, and a single container deployment has been load tested. 
 
 ### Next up: 
 * language detection & support for additional languages. 
 * multi-container deployment latency testing results
+
+## Background
+
+Google's Perspective API shuts down on December 31, 2026. Quota requests closed in February 2026, and no direct migration path is offered ([Perspective API: How it Works](https://www.perspectiveapi.com/how-it-works)).
+
+This drop in Perspective API replacement was made with love by [CoastWeb.dev](https://coastweb.dev). Feel free to contact us throught our site if you need help getting your own perspective api replacement solution up and running. 

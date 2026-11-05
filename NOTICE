@@ -7,3 +7,7 @@ This product includes code ported from:
 
 Copyright 2019 Google LLC. Licensed under the Apache License, Version 2.0.
 https://github.com/tensorflow/tfjs-models
+
+The ported code is in src/tokenizer.ts and src/scorer.ts, which have been
+modified from the originals. The full Apache License 2.0 text is in
+LICENSE-APACHE. The rest of this project is under the MIT License (LICENSE).
