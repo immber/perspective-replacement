@@ -2,9 +2,9 @@
 
 A drop-in replacement for the [Perspective API](https://www.perspectiveapi.com/) endpoints that [Coral](https://github.com/coralproject/talk) calls. Comments are scored by the open TF.js toxicity model, so Coral installs keep working after Perspective shuts down on December 31, 2026.
 
-- **English only** (v0). Other languages are rejected with a 400.
-- **Nothing is stored.** Comment text is never written to disk, a database or logs.
-- **Same request and response shape as Perspective** for the fields Coral uses.
+- **English only** (v0). Other languages are rejected with a 400. (for now)
+- **Nothing is stored.** Comment text is never written to disk, a database, or logs.
+- **Same request and response shape as Perspective**. Same label values returned.
 
 ## Quick start
 
@@ -29,6 +29,11 @@ curl -s -X POST "localhost:8080/v1alpha1/comments:analyze?key=dev-key" \
 | `PERSPECTIVE_API_KEY` | Yes | — | The key clients must send as `?key=`. The server exits at start if it is unset. |
 | `PORT` | No | `8080` | Port to listen on. |
 | `MODEL_DIR` | No | `model` | Folder holding the downloaded weights and vocabulary. |
+| `TF_NUM_INTRAOP_THREADS` | No | `1` in the image | TensorFlow threads per operation. Set to the container's vCPU count. |
+| `TF_NUM_INTEROP_THREADS` | No | `1` in the image | TensorFlow operations run in parallel. Set to the container's vCPU count. |
+| `OMP_NUM_THREADS` | No | `1` in the image | Thread pool used by TensorFlow's math libraries. Set to the container's vCPU count. |
+
+TensorFlow sizes its thread pools from the host machine's cores, not from the container's CPU limit. On a small container, the extra threads compete with Node for CPU, so the [Dockerfile](Dockerfile) sets all three to `1` to match a 1 vCPU deploy. When running locally with `npm run dev`, they are unset and TensorFlow uses all cores.
 
 ## API
 
@@ -77,7 +82,7 @@ Responses are pretty-printed with a trailing newline, as Perspective's are. Both
 
 ### `POST /v1alpha1/comments:suggestscore`
 
-Accepts moderator feedback, which Coral sends when a comment is approved or rejected. The body must be a JSON object with a `comment` object. The service returns `200 {}` and discards the feedback.
+Accepts moderator feedback, which might be sent when a comment is approved or rejected. The body must be a JSON object with a `comment` object. The service returns `200 {}` and discards the feedback.
 
 ### `GET /healthz`
 
@@ -128,11 +133,16 @@ npm run build && npm start
 
 `npm run fetch-model` checks every downloaded file against [scripts/model.sha256](scripts/model.sha256) and fails if any file has changed.
 
-## Deploy to Cloud Run
+## Docker build & Deployment
 
-The [Dockerfile](Dockerfile) builds a linux/amd64 image with the model weights baked in, verified against `scripts/model.sha256`. It runs as a non-root user and leaves out packages that tfjs-node only needs at install time. [cloudbuild.yaml](cloudbuild.yaml) builds the image and pushes it to Artifact Registry.
+The [Dockerfile](Dockerfile) builds a linux/amd64 image with the model weights baked in, verified against `scripts/model.sha256`. 
 
-One-time setup (replace `REGION` with the region you choose, close to your Coral hosts):
+Once built the docker image can be deployed next to, or bundled with, your moderation tooling (such as Coral) to reduce network egress traffic. 
+
+### Built in Google Cloud Run deployment option
+[cloudbuild.yaml](cloudbuild.yaml) builds the image and pushes it to Artifact Registry. It runs as a non-root user and leaves out packages that tfjs-node only needs at install time. 
+
+Replace `REGION` with the region you choose (suggestion to run close to your Coral hosts):
 
 ```sh
 gcloud artifacts repositories create perspective-replacement \
@@ -153,19 +163,25 @@ gcloud run deploy perspective-replacement \
   --region=REGION \
   --min-instances=1 --no-cpu-throttling \
   --memory=1Gi --cpu=1 \
+  --concurrency=20 \
   --set-secrets=PERSPECTIVE_API_KEY=perspective-api-key:latest \
   --allow-unauthenticated
 ```
 
 - `--min-instances=1` and `--no-cpu-throttling` keep one instance warm, so requests never wait for a cold start.
 - `--allow-unauthenticated` is needed because Coral sends our API key, not a Google identity token. The app checks the key itself.
-- Memory is a first guess: the process uses about 500 MB locally. Concurrency and max instances should be set after load testing.
+- `--concurrency=20` is what one 1 vCPU container handled within Coral's 800 ms timeout in load tests. Higher values let requests queue inside the container and push latency past the timeout.
+- Keep `--memory=1Gi`. Less memory lowered throughput in load tests.
+- If you raise `--cpu`, also set the TensorFlow thread variables to match, for example `--set-env-vars=TF_NUM_INTRAOP_THREADS=2,TF_NUM_INTEROP_THREADS=2,OMP_NUM_THREADS=2`. More CPU gave only about 23% more throughput in testing, so adding instances is usually the better way to scale.
+
+
+See [LOAD_TEST_RESULTS.md](LOAD_TEST_RESULTS.md) for information about scaling.
 
 ## Privacy and logging
 
 - The service writes its own JSON log events only, never the query string (which holds the key) or comment text.
 - Fastify's request logger is turned off because it records full URLs.
-- On Cloud Run, the platform's request logs also record full URLs, including `?key=`. Exclude them in Cloud Logging (see `../PLAN.md`).
+- On Cloud Run, the platform's request logs also record full URLs, including `?key=`. Exclude this service's platform request logs in Cloud Logging, and check after deploying that the key no longer appears there.
 
 ## Licence and attribution
 
@@ -173,4 +189,8 @@ The tokenizer and inference code is ported from Google's `@tensorflow-models/tox
 
 ## Status
 
-Scoring works with the real model, and the image builds for Cloud Run. Still to come: golden and latency tests, the first deploy (service URL and region), and the Cloud Logging exclusion.
+Scoring works with the real model, the image builds for Cloud Run, and a single container deployment has been load tested. 
+
+### Next up: 
+* language detection & support for additional languages. 
+* multi-container deployment latency testing results

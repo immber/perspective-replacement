@@ -1,4 +1,4 @@
-// HTTP routes and API-key check. See PLAN.md "Architecture" and "API contract".
+// HTTP routes and API-key check. The API contract is described in README.md.
 import { timingSafeEqual } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
